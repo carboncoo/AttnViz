@@ -12,7 +12,7 @@ from pyecharts.commons.utils import JsCode
 
 import torch
 
-from .data import MultiAttentionMeanDataGenerator
+from .data import MultiAttentionMeanDataGenerator, sort_keys
 
 class HeatMapWidget(gui.Container):
 
@@ -47,7 +47,7 @@ class HeatMapWidget(gui.Container):
             HeatMap(init_opts=opts.InitOpts(width='{}px'.format(max(50*len(x_lb), 1000)), height='{}px'.format(max(20*len(y_lb), 500))))
             .add_xaxis(x_lb)
             .set_global_opts(
-                title_opts=opts.TitleOpts(title="Alignment Mapping"),
+                legend_opts=opts.LegendOpts(type_='scroll'),
                 visualmap_opts=opts.VisualMapOpts(is_show=True, 
                                                 orient='horizontal', 
                                                 pos_left='center', 
@@ -62,11 +62,15 @@ class HeatMapWidget(gui.Container):
                                         splitline_opts=opts.SplitLineOpts(is_show=True, linestyle_opts={'color':'black', 'width':1}))
             )
         )
-        for k, v in value['weights'].items():
+        keys = sort_keys(value['weights'].keys())
+        for k in keys:
+            v = value['weights'][k]
             c.add_yaxis(
                 k,
                 yaxis_data=y_lb,
-                value=v
+                value=v,
+                is_selected=('ref' in k),
+                itemstyle_opts=opts.ItemStyleOpts(opacity=0.8)
             )
         old_filename = os.path.join(self.abspath, self.current_filename)
         if os.path.exists(old_filename):
@@ -101,6 +105,13 @@ class HeatMapWidget(gui.Container):
             return self.render(*self._data.next())
         else:
             return self.render(*self._data.last())
+
+    def reorder(self, expr):
+        success = self._data.sorted_by(expr)
+        if success:
+            return self.update(idx=0)
+        else:
+            return None
 
 class MultiLayerAttentionMap(HeatMapWidget):
 

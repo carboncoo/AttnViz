@@ -1,6 +1,6 @@
-import pandas as pd
 import numpy as np
 import torch
+from collections import Iterable
 
 class Index:
 
@@ -61,10 +61,41 @@ def legalize_lb(lb):
             res.append(i)
     return res
 
+def sort_keys(keys):
+    """
+    Specially designed for alignment datas
+    """
+    ref = []
+    bi_align = []
+    hard = []
+    weight = []
+    for k in keys:
+        if 'ref' in k:
+            ref.append(k)
+        elif 'bi_align' in k:
+            bi_align.append(k)
+        elif '.hard' in k:
+            hard.append(k)
+        else:
+            weight.append(k)
+    ref = sorted(ref)
+    bi_align = sorted(bi_align)
+    hard = sorted(hard)
+    weight = sorted(weight)
+
+    # the latter, the higher level
+    res = weight + hard + bi_align + ref
+    return res
+
+
 class MultiAttentionMeanDataGenerator:
 
     def __init__(self, data):
-        self._data = data # l x h x ny x nx
+        self._data = data # ['src', 'tgt', 'weight', 'metrics']
+        for i in range(len(self._data)):
+            for k in self._data[i]['metrics']:
+                if not isinstance(self._data[i]['metrics'][k], Iterable):
+                    self._data[i]['metrics'][k] = (self._data[i]['metrics'][k], )
         self.idx = -1
 
     def __len__(self):
@@ -87,10 +118,12 @@ class MultiAttentionMeanDataGenerator:
         data = self._data[x] # data: dict of weights [ny, nx]
         x_lb = legalize_lb(data['src'])
         y_lb = legalize_lb(data['tgt'])
-        metrics = data['metrics']
-        info = ''
-        for k, v in metrics.items():
-            info += '{}: {:.1f} '.format(k, v[0]*100)
+        info = 'Info: '
+        if 'metrics' in data:
+            metrics = data['metrics']
+            keys = sort_keys(metrics.keys())
+            for k in keys:
+                info += '{}: {:.1f} '.format(k, metrics[k][0]*100)      
         weights = {}
         # import ipdb; ipdb.set_trace()
         for k, v in data['weights'].items():
@@ -107,6 +140,19 @@ class MultiAttentionMeanDataGenerator:
             'weights': weights
         }
         return x_lb, y_lb, value
+
+    def sorted_by(self, expr):
+        try:
+            scores = []
+            for data in self._data:
+                metrics = {}
+                for k, v in data['metrics'].items():
+                    metrics[k] = v[0]
+                scores.append(eval(expr, metrics))
+            self._data = [x for _, x in sorted(zip(scores, self._data), key=lambda pair: pair[0], reverse=True)]
+            return True
+        except Exception:
+            return False
 
 if __name__ == "__main__":
     data = [["a", "b", [1]], ["c", "d", [2]], ["e", "f", [3]]]
