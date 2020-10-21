@@ -84,7 +84,7 @@ def sort_keys(keys):
     weight = sorted(weight)
 
     # the latter, the higher level
-    res = weight + hard + bi_align + ref
+    res = ref + weight + hard + bi_align
     return res
 
 

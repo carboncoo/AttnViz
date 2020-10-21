@@ -65,12 +65,17 @@ class HeatMapWidget(gui.Container):
         keys = sort_keys(value['weights'].keys())
         for k in keys:
             v = value['weights'][k]
+            if 'ref' in k:
+                v = [{'name': x['name'], 'value': [x['value'][0], x['value'][1], 0]} for x in v]
+                itemOpts = opts.ItemStyleOpts(color="rgba(0,0,0,0)", border_color="black", border_width=4)
+            else:
+                itemOpts = opts.ItemStyleOpts(opacity=0.8)
             c.add_yaxis(
                 k,
                 yaxis_data=y_lb,
                 value=v,
                 is_selected=('ref' in k),
-                itemstyle_opts=opts.ItemStyleOpts(opacity=0.8)
+                itemstyle_opts=itemOpts
             )
         old_filename = os.path.join(self.abspath, self.current_filename)
         if os.path.exists(old_filename):

@@ -1,4 +1,5 @@
 import os
+import argparse
 import remi.gui as gui
 from remi import start, App
 
@@ -83,6 +84,17 @@ class MyApp(App):
         self.data_lb.set_text(data)
         self.chart.load_binary_data(*self.data_select_dialog.get_values())
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Attention visualization",
+        usage="main.py [<args>] [-h | --help]"
+    )
+
+    # configure file
+    parser.add_argument("--port", type=int, default=8082, help="Provided config file")
+
+    return parser.parse_args()
 
 if __name__ == "__main__":
-    start(MyApp, debug=True, address='0.0.0.0', port=8082, start_browser=True, multiple_instance=True)
+    args = parse_args()
+    start(MyApp, debug=True, address='0.0.0.0', port=args.port, start_browser=True, multiple_instance=True)
